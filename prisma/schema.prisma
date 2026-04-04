@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Contact {
+  id              String    @id @default(uuid())
+  companyName     String    @map("company_name")
+  department      String?
+  position        String?
+  name            String
+  email           String    @unique
+  isActive        Boolean   @default(true) @map("is_active")
+  unsubscribedAt  DateTime? @map("unsubscribed_at")
+  source          String?
+  importedAt      DateTime  @default(now()) @map("imported_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  unsubscribeTokens UnsubscribeToken[]
+
+  @@index([companyName])
+  @@index([name])
+  @@index([isActive])
+  @@map("contacts")
+}
+
+model Template {
+  id        String   @id @default(uuid())
+  title     String
+  subject   String
+  body      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("templates")
+}
+
+model UnsubscribeToken {
+  id        String   @id @default(uuid())
+  contactId String   @map("contact_id")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@map("unsubscribe_tokens")
+}

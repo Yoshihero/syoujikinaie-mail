@@ -1,0 +1,66 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const contact = await prisma.contact.findUnique({ where: { id } });
+  if (!contact) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  return NextResponse.json(contact);
+}
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const body = await req.json();
+  const { companyName, department, position, name, email, isActive } = body;
+
+  if (!companyName || !name || !email) {
+    return NextResponse.json({ error: "会社名・氏名・メールアドレスは必須です" }, { status: 400 });
+  }
+
+  const existing = await prisma.contact.findUnique({ where: { email } });
+  if (existing && existing.id !== id) {
+    return NextResponse.json({ error: "このメールアドレスは別の宛先で使用されています" }, { status: 409 });
+  }
+
+  const contact = await prisma.contact.update({
+    where: { id },
+    data: {
+      companyName,
+      department: department || null,
+      position: position || null,
+      name,
+      email,
+      isActive: isActive ?? true,
+    },
+  });
+
+  return NextResponse.json(contact);
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  await prisma.contact.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}
