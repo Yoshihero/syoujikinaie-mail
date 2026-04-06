@@ -1,7 +1,17 @@
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, getServerSession as _getServerSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
+
+const skipAuth = process.env.DEV_SKIP_AUTH === "true";
+
+// 開発時に認証スキップ対応の getServerSession ラッパー
+const FAKE_SESSION = { user: { id: "dev", name: "開発ユーザー", email: "dev@localhost" }, expires: "2099-12-31" };
+
+export async function getDevSession() {
+  if (skipAuth) return FAKE_SESSION;
+  return _getServerSession(authOptions);
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],

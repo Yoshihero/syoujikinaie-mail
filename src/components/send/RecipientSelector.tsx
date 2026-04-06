@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Users } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -86,38 +87,75 @@ export function RecipientSelector({ onConfirm, onBack }: Props) {
 
       {loading ? (
         <p className="text-center text-muted-foreground py-4">読み込み中...</p>
+      ) : contacts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Users className="h-10 w-10 text-muted-foreground/50 mb-3" />
+          <p className="text-muted-foreground font-medium">配信可能な宛先がありません</p>
+          <p className="text-sm text-muted-foreground/70 mt-1">
+            {query ? "検索条件に一致する宛先がありません" : "宛先管理から宛先を登録してください"}
+          </p>
+        </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">選択</TableHead>
-              <TableHead>会社名</TableHead>
-              <TableHead>氏名</TableHead>
-              <TableHead>メールアドレス</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {contacts.map((contact) => (
-              <TableRow
-                key={contact.id}
-                className="cursor-pointer"
-                onClick={() => toggleSelect(contact.id)}
-              >
-                <TableCell>
-                  <input
-                    type="checkbox"
-                    checked={selected.has(contact.id)}
-                    onChange={() => toggleSelect(contact.id)}
-                    className="h-4 w-4"
-                  />
-                </TableCell>
-                <TableCell>{contact.companyName}</TableCell>
-                <TableCell>{contact.name}</TableCell>
-                <TableCell className="text-sm">{contact.email}</TableCell>
+        <>
+        {/* デスクトップ: テーブル表示 */}
+        <div className="hidden sm:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">選択</TableHead>
+                <TableHead>会社名</TableHead>
+                <TableHead>氏名</TableHead>
+                <TableHead>メールアドレス</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {contacts.map((contact) => (
+                <TableRow
+                  key={contact.id}
+                  className="cursor-pointer"
+                  onClick={() => toggleSelect(contact.id)}
+                >
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(contact.id)}
+                      onChange={() => toggleSelect(contact.id)}
+                      className="h-4 w-4"
+                    />
+                  </TableCell>
+                  <TableCell>{contact.companyName}</TableCell>
+                  <TableCell>{contact.name}</TableCell>
+                  <TableCell className="text-sm">{contact.email}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* モバイル: カード表示 */}
+        <div className="sm:hidden space-y-2">
+          {contacts.map((contact) => (
+            <div
+              key={contact.id}
+              className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${
+                selected.has(contact.id) ? "border-primary bg-primary/5" : "border-border"
+              }`}
+              onClick={() => toggleSelect(contact.id)}
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(contact.id)}
+                onChange={() => toggleSelect(contact.id)}
+                className="h-4 w-4 shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{contact.companyName} / {contact.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{contact.email}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
 
       <div className="flex gap-2">

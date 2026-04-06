@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getDevSession } from "@/lib/auth";
+
 import { prisma } from "@/lib/prisma";
 import { buildMailBody, createUnsubscribeToken, sendEmail } from "@/lib/mail";
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getDevSession();
   if (!session) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }

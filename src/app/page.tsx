@@ -11,7 +11,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (session) {
+    if (session || process.env.NEXT_PUBLIC_DEV_SKIP_AUTH === "true") {
       router.push("/dashboard");
     }
   }, [session, router]);
