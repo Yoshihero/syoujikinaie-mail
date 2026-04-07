@@ -9,6 +9,7 @@ interface Props {
   subject: string;
   body: string;
   contactIds: string[];
+  onComplete?: () => void;
 }
 
 interface Progress {
@@ -19,7 +20,7 @@ interface Progress {
   currentEmail?: string;
 }
 
-export function SendProgress({ subject, body, contactIds }: Props) {
+export function SendProgress({ subject, body, contactIds, onComplete }: Props) {
   const router = useRouter();
   const [progress, setProgress] = useState<Progress>({
     current: 0,
@@ -65,8 +66,9 @@ export function SendProgress({ subject, body, contactIds }: Props) {
               if (data.type === "progress") {
                 setProgress(data);
               } else if (data.type === "complete") {
-                setProgress(data);
+                setProgress((prev) => ({ ...prev, ...data, current: data.total }));
                 setDone(true);
+                onComplete?.();
               }
             }
           }
