@@ -38,9 +38,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-blue-900/20 mix-blend-multiply" />
         
         <div className="relative z-10 px-16 max-w-xl text-center">
-          <div className="mx-auto bg-white/10 backdrop-blur-md w-24 h-24 rounded-3xl flex items-center justify-center mb-8 border border-white/20 shadow-2xl">
-            <Mail className="w-12 h-12 text-white" strokeWidth={1.5} />
-          </div>
+          <img src="/logo.svg" alt="正直な家" className="h-12 w-auto mx-auto brightness-0 invert" />
         </div>
       </div>
 
