@@ -2,6 +2,51 @@ import { google } from "googleapis";
 import { prisma } from "./prisma";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * access_token を取得し、期限切れなら refresh_token で更新する
+ */
+export async function getValidAccessToken(accountId: string): Promise<string> {
+  const account = await prisma.account.findUniqueOrThrow({
+    where: { id: accountId },
+  });
+
+  if (!account.access_token) {
+    throw new Error("Googleアカウントの認証情報が見つかりません");
+  }
+
+  // expires_at が設定されていて、かつ期限内ならそのまま返す（5分バッファ）
+  const now = Math.floor(Date.now() / 1000);
+  if (account.expires_at && account.expires_at > now + 300) {
+    return account.access_token;
+  }
+
+  // refresh_token がなければ現在のトークンをそのまま試す
+  if (!account.refresh_token) {
+    return account.access_token;
+  }
+
+  // refresh_token で新しい access_token を取得
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+  oauth2Client.setCredentials({ refresh_token: account.refresh_token });
+
+  const { credentials } = await oauth2Client.refreshAccessToken();
+
+  await prisma.account.update({
+    where: { id: accountId },
+    data: {
+      access_token: credentials.access_token,
+      expires_at: credentials.expiry_date
+        ? Math.floor(credentials.expiry_date / 1000)
+        : null,
+    },
+  });
+
+  return credentials.access_token!;
+}
+
 const FOOTER_SIGNATURE = `
 ──────────────────
 株式会社　正直な家

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getDevSession } from "@/lib/auth";
 
 import { prisma } from "@/lib/prisma";
-import { buildMailBody, createUnsubscribeToken, sendEmail } from "@/lib/mail";
+import { buildMailBody, createUnsubscribeToken, getValidAccessToken, sendEmail } from "@/lib/mail";
 
 export async function POST(req: NextRequest) {
   const session = await getDevSession();
@@ -19,6 +19,17 @@ export async function POST(req: NextRequest) {
   if (!account?.access_token) {
     return new Response(
       JSON.stringify({ error: "Googleアカウントの認証情報が見つかりません" }),
+      { status: 401 }
+    );
+  }
+
+  // トークンをリフレッシュして有効なものを取得
+  let accessToken: string;
+  try {
+    accessToken = await getValidAccessToken(account.id);
+  } catch {
+    return new Response(
+      JSON.stringify({ error: "Googleアカウントの認証情報が期限切れです。再ログインしてください。" }),
       { status: 401 }
     );
   }
@@ -52,7 +63,7 @@ export async function POST(req: NextRequest) {
           const mailBody = buildMailBody(body, contact, unsubscribeUrl);
 
           await sendEmail(
-            account.access_token!,
+            accessToken,
             senderEmail,
             contact.email,
             subject,
