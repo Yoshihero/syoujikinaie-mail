@@ -5,6 +5,12 @@ import { prisma } from "./prisma";
 
 const skipAuth = process.env.DEV_SKIP_AUTH === "true";
 
+// ログイン許可ユーザー
+const ALLOWED_EMAILS = [
+  "k.tanaka@syoujikinaie.com",
+  "yoshihiro.taguchi@heroes-tokyo.asia",
+];
+
 // 開発時に認証スキップ対応の getServerSession ラッパー
 const FAKE_SESSION = { user: { id: "dev", name: "開発ユーザー", email: "dev@localhost" }, expires: "2099-12-31" };
 
@@ -33,6 +39,10 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user }) {
+      if (skipAuth) return true;
+      return ALLOWED_EMAILS.includes(user.email ?? "");
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
