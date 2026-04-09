@@ -1,48 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDevSession } from "@/lib/auth";
-
 import { prisma } from "@/lib/prisma";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getDevSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const template = await prisma.template.findUnique({ where: { id } });
-  if (!template) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(template);
+  const draft = await prisma.draft.findUnique({ where: { id } });
+  if (!draft) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(draft);
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getDevSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const { title, subject, body } = await req.json();
-
-  const template = await prisma.template.update({
+  const draft = await prisma.draft.update({
     where: { id },
     data: { title, subject, body },
   });
-
-  return NextResponse.json(template);
+  return NextResponse.json(draft);
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getDevSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  await prisma.template.delete({ where: { id } });
-
+  await prisma.draft.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

@@ -2,16 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Header } from "@/components/layout/Header";
+import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Trash2 } from "lucide-react";
 
 interface Template {
   id: string;
@@ -40,52 +36,58 @@ export default function TemplatesPage() {
   };
 
   return (
-    <>
-      <Header />
-      <main className="mx-auto max-w-3xl px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">テンプレート一覧</h2>
-          <Button variant="outline" onClick={() => router.push("/mail")}>
+    <AppShell>
+      <main className="mx-auto max-w-5xl px-8 py-10">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-bold tracking-tight">テンプレート管理</h2>
+          <Button variant="outline" onClick={() => router.push("/mail")} className="border-primary/20 hover:bg-primary/5">
             メール作成へ
           </Button>
         </div>
         {templates.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            テンプレートがありません
+          <p className="text-center text-muted-foreground py-16 bg-white rounded-xl border border-border/50">
+            テンプレートがありません。メール作成画面から「テンプレートとして保存」で作成できます。
           </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>テンプレート名</TableHead>
-                <TableHead>件名</TableHead>
-                <TableHead>更新日</TableHead>
-                <TableHead>操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {templates.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>{t.title}</TableCell>
-                  <TableCell>{t.subject}</TableCell>
-                  <TableCell className="text-sm">
-                    {new Date(t.updatedAt).toLocaleDateString("ja-JP")}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(t.id)}
-                    >
-                      削除
-                    </Button>
-                  </TableCell>
+          <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-50/50">
+                <TableRow>
+                  <TableHead className="font-semibold">テンプレート名</TableHead>
+                  <TableHead className="font-semibold">件名</TableHead>
+                  <TableHead className="font-semibold">更新日</TableHead>
+                  <TableHead className="font-semibold text-right">操作</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {templates.map((t) => (
+                  <TableRow
+                    key={t.id}
+                    className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/mail/templates/${t.id}/edit`)}
+                  >
+                    <TableCell className="font-medium">{t.title}</TableCell>
+                    <TableCell className="text-slate-600">{t.subject}</TableCell>
+                    <TableCell className="text-sm text-slate-500">
+                      {new Date(t.updatedAt).toLocaleDateString("ja-JP")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </main>
-    </>
+    </AppShell>
   );
 }

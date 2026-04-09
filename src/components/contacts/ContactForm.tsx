@@ -67,52 +67,57 @@ export function ContactForm({ initialData, isEdit }: Props) {
         <CardTitle>{isEdit ? "宛先編集" : "宛先登録"}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="companyName">会社名 *</Label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="companyName" className="font-semibold text-slate-700">会社名 *</Label>
             <Input
               id="companyName"
               value={form.companyName}
               onChange={(e) => setForm({ ...form, companyName: e.target.value })}
               required
+              className="bg-slate-50"
             />
           </div>
-          <div>
-            <Label htmlFor="department">部署名</Label>
+          <div className="space-y-2">
+            <Label htmlFor="department" className="font-semibold text-slate-700">部署名</Label>
             <Input
               id="department"
               value={form.department}
               onChange={(e) => setForm({ ...form, department: e.target.value })}
+              className="bg-slate-50"
             />
           </div>
-          <div>
-            <Label htmlFor="position">役職</Label>
+          <div className="space-y-2">
+            <Label htmlFor="position" className="font-semibold text-slate-700">役職</Label>
             <Input
               id="position"
               value={form.position}
               onChange={(e) => setForm({ ...form, position: e.target.value })}
+              className="bg-slate-50"
             />
           </div>
-          <div>
-            <Label htmlFor="name">氏名 *</Label>
+          <div className="space-y-2">
+            <Label htmlFor="name" className="font-semibold text-slate-700">氏名 *</Label>
             <Input
               id="name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
+              className="bg-slate-50"
             />
           </div>
-          <div>
-            <Label htmlFor="email">メールアドレス *</Label>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="font-semibold text-slate-700">メールアドレス *</Label>
             <Input
               id="email"
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
+              className="bg-slate-50"
             />
           </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
           <div className="flex gap-2">
             <Button type="submit" disabled={loading}>
               {loading ? "保存中..." : "保存"}

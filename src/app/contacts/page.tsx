@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Header } from "@/components/layout/Header";
+import { AppShell } from "@/components/layout/AppShell";
 import { ContactSearch } from "@/components/contacts/ContactSearch";
 import { ContactTable } from "@/components/contacts/ContactTable";
 import { Button } from "@/components/ui/button";
@@ -91,13 +91,12 @@ function ContactsContent() {
 
 export default function ContactsPage() {
   return (
-    <>
-      <Header />
-      <main className="mx-auto max-w-5xl px-4 py-8">
+    <AppShell>
+      <main className="mx-auto max-w-5xl px-8 py-10">
         <Suspense fallback={<p className="text-center text-muted-foreground py-8">読み込み中...</p>}>
           <ContactsContent />
         </Suspense>
       </main>
-    </>
+    </AppShell>
   );
 }

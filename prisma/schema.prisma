@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Account {
@@ -86,4 +87,15 @@ model UnsubscribeToken {
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@map("unsubscribe_tokens")
+}
+
+model Draft {
+  id        String   @id @default(uuid())
+  title     String
+  subject   String   @default("")
+  body      String   @default("") @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("drafts")
 }

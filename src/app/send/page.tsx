@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Header } from "@/components/layout/Header";
+import { AppShell } from "@/components/layout/AppShell";
 import { RecipientSelector } from "@/components/send/RecipientSelector";
 import { SendProgress } from "@/components/send/SendProgress";
 import { StepIndicator } from "@/components/send/StepIndicator";
@@ -41,22 +41,30 @@ export default function SendPage() {
     setStep("confirm");
   };
 
+  const handleSendComplete = async () => {
+    const draftId = sessionStorage.getItem("mail_draft_id");
+    if (draftId) {
+      await fetch(`/api/drafts/${draftId}`, { method: "DELETE" });
+      sessionStorage.removeItem("mail_draft_id");
+    }
+  };
+
   if (!subject || !body) {
     return (
-      <>
-        <Header />
-        <main className="mx-auto max-w-5xl px-4 py-8">
+        <AppShell>
+        <main className="mx-auto max-w-5xl px-8 py-10">
           <p className="text-muted-foreground">メール作成画面に戻ります...</p>
         </main>
-      </>
+      </AppShell>
     );
   }
 
   return (
-    <>
-      <Header />
-      <main className="mx-auto max-w-5xl px-4 py-8">
-        <StepIndicator steps={STEPS} currentStep={step} />
+    <AppShell>
+      <main className="mx-auto max-w-5xl px-8 py-10">
+        <div className="mb-8">
+          <StepIndicator steps={STEPS} currentStep={step} />
+        </div>
 
         {step === "select" && (
           <RecipientSelector
@@ -66,26 +74,33 @@ export default function SendPage() {
         )}
 
         {step === "confirm" && (
-          <Card className="max-w-lg">
-            <CardHeader>
-              <CardTitle>送信確認</CardTitle>
+          <Card className="max-w-lg mx-auto border-border/50 shadow-lg">
+            <CardHeader className="bg-slate-50/50 border-b border-border/50">
+              <CardTitle className="text-xl">送信確認</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-800">
-                  送信を開始すると、約3秒間隔で1通ずつ配信されます。
+            <CardContent className="space-y-6 pt-6">
+              <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-amber-800 leading-relaxed font-medium">
+                  送信を開始すると、約3秒間隔で1通ずつ配信されます。<br/>
+                  送信中はブラウザを閉じないでください。
                 </p>
               </div>
-              <div className="text-sm space-y-2">
-                <p><span className="text-muted-foreground">件名:</span> {subject}</p>
-                <p><span className="text-muted-foreground">送信先:</span> {selectedIds.length} 件</p>
+              <div className="text-sm space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p className="flex justify-between border-b border-slate-200 pb-2">
+                  <span className="text-slate-500 font-medium">件名</span> 
+                  <span className="font-semibold text-slate-800">{subject}</span>
+                </p>
+                <p className="flex justify-between pt-1">
+                  <span className="text-slate-500 font-medium">送信先</span> 
+                  <span className="font-semibold text-slate-800">{selectedIds.length} <span className="font-normal text-slate-500 text-xs ml-0.5">件</span></span>
+                </p>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={() => setStep("sending")}>
+              <div className="flex gap-3 pt-2">
+                <Button className="flex-1 shadow-md hover:shadow-lg transition-all" size="lg" onClick={() => setStep("sending")}>
                   送信開始
                 </Button>
-                <Button variant="outline" onClick={() => setStep("select")}>
+                <Button className="flex-1" size="lg" variant="outline" onClick={() => setStep("select")}>
                   戻る
                 </Button>
               </div>
@@ -98,9 +113,10 @@ export default function SendPage() {
             subject={subject}
             body={body}
             contactIds={selectedIds}
+            onComplete={handleSendComplete}
           />
         )}
       </main>
-    </>
+    </AppShell>
   );
 }
