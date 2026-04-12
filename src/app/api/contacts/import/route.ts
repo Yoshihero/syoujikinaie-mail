@@ -17,42 +17,43 @@ export async function POST(req: NextRequest) {
 
   const { validRows, errors } = validateAndMapRows(rows, mapping);
 
-  let imported = 0;
-  let updated = 0;
+  // 既存メールアドレスを一括取得（1クエリ）
+  const emails = validRows.map((r) => r.email);
+  const existingContacts = await prisma.contact.findMany({
+    where: { email: { in: emails } },
+    select: { email: true, companyName: true, department: true, position: true, name: true, source: true },
+  });
+  const existingMap = new Map(existingContacts.map((c) => [c.email, c]));
 
-  for (const row of validRows) {
-    const existing = await prisma.contact.findUnique({
+  // upsert操作をトランザクションで一括実行
+  const ops = validRows.map((row) => {
+    const existing = existingMap.get(row.email);
+    return prisma.contact.upsert({
       where: { email: row.email },
+      update: {
+        companyName: row.companyName || existing?.companyName || row.companyName,
+        department: row.department || existing?.department || null,
+        position: row.position || existing?.position || null,
+        name: row.name || existing?.name || row.name,
+        source: source || existing?.source || null,
+        importedAt: new Date(),
+      },
+      create: {
+        companyName: row.companyName,
+        department: row.department || null,
+        position: row.position || null,
+        name: row.name,
+        email: row.email,
+        source: source || null,
+        importedAt: new Date(),
+      },
     });
+  });
 
-    if (existing) {
-      await prisma.contact.update({
-        where: { email: row.email },
-        data: {
-          companyName: row.companyName || existing.companyName,
-          department: row.department || existing.department,
-          position: row.position || existing.position,
-          name: row.name || existing.name,
-          source: source || existing.source,
-          importedAt: new Date(),
-        },
-      });
-      updated++;
-    } else {
-      await prisma.contact.create({
-        data: {
-          companyName: row.companyName,
-          department: row.department || null,
-          position: row.position || null,
-          name: row.name,
-          email: row.email,
-          source: source || null,
-          importedAt: new Date(),
-        },
-      });
-      imported++;
-    }
-  }
+  const results = await prisma.$transaction(ops);
+
+  const imported = validRows.filter((r) => !existingMap.has(r.email)).length;
+  const updated = validRows.filter((r) => existingMap.has(r.email)).length;
 
   return NextResponse.json({
     imported,
