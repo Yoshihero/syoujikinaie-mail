@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
           source: source || null,
           importedAt: new Date(),
         })),
+        skipDuplicates: true,
       });
     }
 
