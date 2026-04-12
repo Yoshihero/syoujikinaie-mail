@@ -26,53 +26,48 @@ export async function POST(req: NextRequest) {
     const deduped = new Map(validRows.map((r) => [r.email, r]));
     const uniqueRows = Array.from(deduped.values());
 
-    // 既存メールを一括取得
+    // 既存メールを一括取得（カウント用）
     const emails = uniqueRows.map((r) => r.email);
     const existingContacts = await prisma.contact.findMany({
       where: { email: { in: emails } },
-      select: { email: true, companyName: true, department: true, position: true, name: true, source: true },
+      select: { email: true },
     });
-    const existingMap = new Map(existingContacts.map((c) => [c.email, c]));
+    const existingSet = new Set(existingContacts.map((c) => c.email));
 
-    // 新規レコード: createManyで一括挿入（1クエリ）
-    const newRows = uniqueRows.filter((r) => !existingMap.has(r.email));
-    if (newRows.length > 0) {
-      await prisma.contact.createMany({
-        data: newRows.map((row) => ({
-          companyName: row.companyName,
-          department: row.department || null,
-          position: row.position || null,
-          name: row.name,
-          email: row.email,
-          source: source || null,
-          importedAt: new Date(),
-        })),
-      });
-    }
+    // 生SQLで一括upsert（1クエリ、新規も更新もまとめて処理）
+    const placeholders = uniqueRows.map((_, i) => {
+      const b = i * 6;
+      return `(gen_random_uuid(), $${b+1}, $${b+2}, $${b+3}, $${b+4}, $${b+5}, true, $${b+6}, NOW(), NOW(), NOW())`;
+    }).join(", ");
 
-    // 既存レコード: transactionで一括更新
-    const updateRows = uniqueRows.filter((r) => existingMap.has(r.email));
-    if (updateRows.length > 0) {
-      const updateOps = updateRows.map((row) => {
-        const existing = existingMap.get(row.email)!;
-        return prisma.contact.update({
-          where: { email: row.email },
-          data: {
-            companyName: row.companyName || existing.companyName,
-            department: row.department || existing.department,
-            position: row.position || existing.position,
-            name: row.name || existing.name,
-            source: source || existing.source,
-            importedAt: new Date(),
-          },
-        });
-      });
-      await prisma.$transaction(updateOps);
-    }
+    const params = uniqueRows.flatMap((row) => [
+      row.companyName,
+      row.department || null,
+      row.position || null,
+      row.name,
+      row.email,
+      source || null,
+    ]);
+
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO contacts (id, company_name, department, position, name, email, is_active, source, imported_at, created_at, updated_at)
+      VALUES ${placeholders}
+      ON CONFLICT (email) DO UPDATE SET
+        company_name = CASE WHEN EXCLUDED.company_name != '' THEN EXCLUDED.company_name ELSE contacts.company_name END,
+        department = CASE WHEN EXCLUDED.department IS NOT NULL AND EXCLUDED.department != '' THEN EXCLUDED.department ELSE contacts.department END,
+        position = CASE WHEN EXCLUDED.position IS NOT NULL AND EXCLUDED.position != '' THEN EXCLUDED.position ELSE contacts.position END,
+        name = CASE WHEN EXCLUDED.name != '' THEN EXCLUDED.name ELSE contacts.name END,
+        source = CASE WHEN EXCLUDED.source IS NOT NULL AND EXCLUDED.source != '' THEN EXCLUDED.source ELSE contacts.source END,
+        imported_at = NOW(),
+        updated_at = NOW()
+    `, ...params);
+
+    const imported = uniqueRows.filter((r) => !existingSet.has(r.email)).length;
+    const updated = uniqueRows.filter((r) => existingSet.has(r.email)).length;
 
     return NextResponse.json({
-      imported: newRows.length,
-      updated: updateRows.length,
+      imported,
+      updated,
       errorCount: errors.length,
       errors,
     });
