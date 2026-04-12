@@ -42,6 +42,7 @@ function ContactsContent() {
   }, [fetchContacts]);
 
   const handleDelete = async (id: string) => {
+    if (!confirm("この宛先を削除しますか？")) return;
     await fetch(`/api/contacts/${id}`, { method: "DELETE" });
     fetchContacts();
   };

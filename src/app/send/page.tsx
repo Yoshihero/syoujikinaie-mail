@@ -47,6 +47,8 @@ export default function SendPage() {
       await fetch(`/api/drafts/${draftId}`, { method: "DELETE" });
       sessionStorage.removeItem("mail_draft_id");
     }
+    sessionStorage.removeItem("mail_subject");
+    sessionStorage.removeItem("mail_body");
   };
 
   if (!subject || !body) {

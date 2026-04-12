@@ -99,3 +99,34 @@ model Draft {
 
   @@map("drafts")
 }
+
+model SendLog {
+  id          String   @id @default(uuid())
+  subject     String
+  body        String   @db.Text
+  totalCount  Int      @map("total_count")
+  sentCount   Int      @map("sent_count")
+  failedCount Int      @map("failed_count")
+  senderEmail String   @map("sender_email")
+  status      String   @default("in_progress")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  details SendLogDetail[]
+
+  @@map("send_logs")
+}
+
+model SendLogDetail {
+  id        String   @id @default(uuid())
+  sendLogId String   @map("send_log_id")
+  contactId String   @map("contact_id")
+  email     String
+  status    String
+  error     String?
+  sentAt    DateTime @default(now()) @map("sent_at")
+
+  sendLog SendLog @relation(fields: [sendLogId], references: [id], onDelete: Cascade)
+
+  @@map("send_log_details")
+}

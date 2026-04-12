@@ -12,15 +12,16 @@ export async function GET() {
   });
 
   const header = "会社名,部署名,役職,氏名,メールアドレス,配信可否,取込元,最終更新日時";
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const rows = contacts.map((c) =>
     [
-      `"${c.companyName}"`,
-      `"${c.department || ""}"`,
-      `"${c.position || ""}"`,
-      `"${c.name}"`,
-      `"${c.email}"`,
+      esc(c.companyName),
+      esc(c.department || ""),
+      esc(c.position || ""),
+      esc(c.name),
+      esc(c.email),
       c.isActive ? "配信可" : "配信停止",
-      `"${c.source || ""}"`,
+      esc(c.source || ""),
       c.updatedAt.toISOString(),
     ].join(",")
   );

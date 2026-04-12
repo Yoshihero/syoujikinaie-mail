@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+const BATCH_SIZE = 3;
+
 interface Props {
   subject: string;
   body: string;
@@ -17,7 +19,6 @@ interface Progress {
   total: number;
   sent: number;
   failed: number;
-  currentEmail?: string;
 }
 
 export function SendProgress({ subject, body, contactIds, onComplete }: Props) {
@@ -32,54 +33,94 @@ export function SendProgress({ subject, body, contactIds, onComplete }: Props) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const send = async () => {
+    let cancelled = false;
+
+    const sendBatches = async () => {
+      // 送信履歴を作成
+      let sendLogId: string | null = null;
       try {
-        const res = await fetch("/api/send", {
+        const startRes = await fetch("/api/send/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subject, body, contactIds }),
+          body: JSON.stringify({ subject, body, totalCount: contactIds.length }),
         });
-
-        if (!res.ok) {
-          const data = await res.json();
-          setError(data.error || "送信に失敗しました");
-          return;
-        }
-
-        const reader = res.body?.getReader();
-        if (!reader) return;
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done: streamDone, value } = await reader.read();
-          if (streamDone) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === "progress") {
-                setProgress(data);
-              } else if (data.type === "complete") {
-                setProgress((prev) => ({ ...prev, ...data, current: data.total }));
-                setDone(true);
-                onComplete?.();
-              }
-            }
-          }
+        if (startRes.ok) {
+          const startData = await startRes.json();
+          sendLogId = startData.sendLogId;
         }
       } catch {
-        setError("送信中にエラーが発生しました");
+        // 履歴作成に失敗しても送信は続行する
+      }
+
+      let totalSent = 0;
+      let totalFailed = 0;
+      let totalProcessed = 0;
+
+      for (let i = 0; i < contactIds.length; i += BATCH_SIZE) {
+        if (cancelled) break;
+
+        const batch = contactIds.slice(i, i + BATCH_SIZE);
+
+        try {
+          const res = await fetch("/api/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subject, body, contactIds: batch, sendLogId }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json();
+            if (!cancelled) setError(data.error || "送信に失敗しました");
+            return;
+          }
+
+          const data = await res.json();
+          totalSent += data.sent;
+          totalFailed += data.failed;
+          totalProcessed += batch.length;
+
+          if (!cancelled) {
+            setProgress({
+              current: totalProcessed,
+              total: contactIds.length,
+              sent: totalSent,
+              failed: totalFailed,
+            });
+          }
+
+          // バッチ間に3秒待機（Gmail APIレートリミット対策、最終バッチ以外）
+          if (i + BATCH_SIZE < contactIds.length) {
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+          }
+        } catch {
+          if (!cancelled) setError("送信中にエラーが発生しました");
+          return;
+        }
+      }
+
+      // 送信完了を記録
+      if (sendLogId) {
+        try {
+          await fetch("/api/send/complete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sendLogId }),
+          });
+        } catch {
+          // 完了記録に失敗しても問題なし
+        }
+      }
+
+      if (!cancelled) {
+        setDone(true);
+        onComplete?.();
       }
     };
 
-    send();
-  }, [subject, body, contactIds]);
+    sendBatches();
+
+    return () => { cancelled = true; };
+  }, [subject, body, contactIds, onComplete]);
 
   const percentage = progress.total > 0
     ? Math.round((progress.current / progress.total) * 100)
@@ -108,9 +149,6 @@ export function SendProgress({ subject, body, contactIds, onComplete }: Props) {
               <p>送信成功: {progress.sent} 件</p>
               {progress.failed > 0 && (
                 <p className="text-red-500">送信失敗: {progress.failed} 件</p>
-              )}
-              {!done && progress.currentEmail && (
-                <p className="text-muted-foreground">送信中: {progress.currentEmail}</p>
               )}
             </div>
           </>

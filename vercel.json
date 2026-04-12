@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "src/app/api/send/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

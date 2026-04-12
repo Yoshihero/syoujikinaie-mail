@@ -34,12 +34,20 @@ export function RecipientSelector({ onConfirm, onBack }: Props) {
 
   const fetchContacts = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ limit: "1000" });
-    if (query) params.set("q", query);
-    const res = await fetch(`/api/contacts?${params.toString()}`);
-    const data = await res.json();
-    // 配信可能な宛先のみ表示
-    const active = data.contacts.filter((c: Contact) => c.isActive);
+    // 全件取得（ページネーションで取りこぼさないよう繰り返し取得）
+    const allContacts: Contact[] = [];
+    let page = 1;
+    const limit = 500;
+    while (true) {
+      const params = new URLSearchParams({ limit: String(limit), page: String(page) });
+      if (query) params.set("q", query);
+      const res = await fetch(`/api/contacts?${params.toString()}`);
+      const data = await res.json();
+      allContacts.push(...data.contacts);
+      if (allContacts.length >= data.total) break;
+      page++;
+    }
+    const active = allContacts.filter((c: Contact) => c.isActive);
     setContacts(active);
     setLoading(false);
   }, [query]);
