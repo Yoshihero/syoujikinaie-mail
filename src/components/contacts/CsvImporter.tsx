@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UploadCloud, CheckCircle2, ArrowRight } from "lucide-react";
+import { UploadCloud, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 
 type Step = "upload" | "mapping" | "confirm" | "result";
 
@@ -276,32 +276,58 @@ export function CsvImporter() {
       {step === "confirm" && (
         <Card className="max-w-2xl mx-auto border-border/60 shadow-lg bg-white overflow-hidden">
           <div className="bg-slate-50/50 p-6 border-b border-border/50">
-            <h3 className="text-xl font-bold text-slate-800">インポートの最終確認</h3>
-            <p className="text-sm text-slate-500 mt-1 font-medium">以下の内容でデータベースへ登録を実行します。</p>
+            <h3 className="text-xl font-bold text-slate-800">{loading ? "インポート処理中" : "インポートの最終確認"}</h3>
+            <p className="text-sm text-slate-500 mt-1 font-medium">{loading ? "データベースへ登録しています。しばらくお待ちください。" : "以下の内容でデータベースへ登録を実行します。"}</p>
           </div>
           <CardContent className="p-8 space-y-8">
-            <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-8 text-center space-y-2">
-              <p className="text-indigo-400 font-bold uppercase tracking-widest text-sm">Target Data</p>
-              <div className="text-5xl font-extrabold text-slate-800 tracking-tight">{csvRows.length} <span className="text-xl text-slate-500 font-medium">件</span></div>
-              <p className="text-sm text-indigo-900/60 font-semibold pt-2">データソース: {source}</p>
-            </div>
+            {loading ? (
+              <>
+                <div className="flex flex-col items-center py-8 space-y-6">
+                  <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                  <div className="text-center space-y-2">
+                    <p className="text-2xl font-extrabold text-slate-800">{csvRows.length} 件を処理中...</p>
+                    <p className="text-sm text-slate-500 font-medium">データソース: {source}</p>
+                  </div>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                  <div className="bg-primary h-3 rounded-full animate-pulse w-full origin-left" style={{ animation: "progress-indeterminate 2s ease-in-out infinite" }} />
+                </div>
+                <style>{`
+                  @keyframes progress-indeterminate {
+                    0% { transform: scaleX(0); transform-origin: left; }
+                    50% { transform: scaleX(1); transform-origin: left; }
+                    50.1% { transform: scaleX(1); transform-origin: right; }
+                    100% { transform: scaleX(0); transform-origin: right; }
+                  }
+                `}</style>
+                <p className="text-center text-sm text-slate-400 font-medium">ブラウザを閉じないでください</p>
+              </>
+            ) : (
+              <>
+                <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-8 text-center space-y-2">
+                  <p className="text-indigo-400 font-bold uppercase tracking-widest text-sm">Target Data</p>
+                  <div className="text-5xl font-extrabold text-slate-800 tracking-tight">{csvRows.length} <span className="text-xl text-slate-500 font-medium">件</span></div>
+                  <p className="text-sm text-indigo-900/60 font-semibold pt-2">データソース: {source}</p>
+                </div>
 
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800 font-medium leading-relaxed">
-              <ul className="list-disc list-inside space-y-1">
-                <li>同一メールアドレスの既存データは最新の情報として更新されます。</li>
-                <li>CSV上で空欄となっている項目が、既存のデータを上書きすることはありません。</li>
-                <li>実行が完了するまでブラウザを閉じないでください。</li>
-              </ul>
-            </div>
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800 font-medium leading-relaxed">
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>同一メールアドレスの既存データは最新の情報として更新されます。</li>
+                    <li>CSV上で空欄となっている項目が、既存のデータを上書きすることはありません。</li>
+                    <li>実行が完了するまでブラウザを閉じないでください。</li>
+                  </ul>
+                </div>
 
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" size="lg" onClick={() => setStep("mapping")} className="w-32">
-                戻る
-              </Button>
-              <Button size="lg" onClick={handleImport} disabled={loading} className="px-8 font-bold text-base shadow-md hover:-translate-y-0.5 transition-all w-48">
-                {loading ? "取込実行中..." : "インポート開始"}
-              </Button>
-            </div>
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" size="lg" onClick={() => setStep("mapping")} className="w-32">
+                    戻る
+                  </Button>
+                  <Button size="lg" onClick={handleImport} className="px-8 font-bold text-base shadow-md hover:-translate-y-0.5 transition-all w-48">
+                    インポート開始
+                  </Button>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
