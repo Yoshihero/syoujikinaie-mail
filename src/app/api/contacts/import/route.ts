@@ -22,8 +22,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ imported: 0, updated: 0, errorCount: errors.length, errors });
     }
 
+    // CSV内の重複メールは最後の行を採用（＝最新データで上書き）
+    const deduped = new Map(validRows.map((r) => [r.email, r]));
+    const uniqueRows = Array.from(deduped.values());
+
     // 既存メールを一括取得
-    const emails = validRows.map((r) => r.email);
+    const emails = uniqueRows.map((r) => r.email);
     const existingContacts = await prisma.contact.findMany({
       where: { email: { in: emails } },
       select: { email: true, companyName: true, department: true, position: true, name: true, source: true },
@@ -31,7 +35,7 @@ export async function POST(req: NextRequest) {
     const existingMap = new Map(existingContacts.map((c) => [c.email, c]));
 
     // 新規レコード: createManyで一括挿入（1クエリ）
-    const newRows = validRows.filter((r) => !existingMap.has(r.email));
+    const newRows = uniqueRows.filter((r) => !existingMap.has(r.email));
     if (newRows.length > 0) {
       await prisma.contact.createMany({
         data: newRows.map((row) => ({
@@ -43,12 +47,11 @@ export async function POST(req: NextRequest) {
           source: source || null,
           importedAt: new Date(),
         })),
-        skipDuplicates: true,
       });
     }
 
-    // 既存レコード: transactionで一括更新（タイムアウト50秒）
-    const updateRows = validRows.filter((r) => existingMap.has(r.email));
+    // 既存レコード: transactionで一括更新
+    const updateRows = uniqueRows.filter((r) => existingMap.has(r.email));
     if (updateRows.length > 0) {
       const updateOps = updateRows.map((row) => {
         const existing = existingMap.get(row.email)!;
