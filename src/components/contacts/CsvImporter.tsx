@@ -102,17 +102,26 @@ export function CsvImporter() {
     (f) => mapping[f.key]
   );
 
+  const [importError, setImportError] = useState("");
+
   const handleImport = async () => {
     setLoading(true);
+    setImportError("");
     try {
       const res = await fetch("/api/contacts/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rows: csvRows, mapping, source }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || `サーバーエラー (${res.status})`);
+      }
       const data = await res.json();
       setResult(data);
       setStep("result");
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "インポート中にエラーが発生しました。もう一度お試しください。");
     } finally {
       setLoading(false);
     }
@@ -304,6 +313,12 @@ export function CsvImporter() {
               </>
             ) : (
               <>
+                {importError && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 font-medium">
+                    {importError}
+                  </div>
+                )}
+
                 <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-8 text-center space-y-2">
                   <p className="text-indigo-400 font-bold uppercase tracking-widest text-sm">Target Data</p>
                   <div className="text-5xl font-extrabold text-slate-800 tracking-tight">{csvRows.length} <span className="text-xl text-slate-500 font-medium">件</span></div>
@@ -323,7 +338,7 @@ export function CsvImporter() {
                     戻る
                   </Button>
                   <Button size="lg" onClick={handleImport} className="px-8 font-bold text-base shadow-md hover:-translate-y-0.5 transition-all w-48">
-                    インポート開始
+                    {importError ? "もう一度試す" : "インポート開始"}
                   </Button>
                 </div>
               </>
